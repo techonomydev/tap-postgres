@@ -302,7 +302,7 @@ class PostgresStream(SQLStream):
         if self.replication_key:
             replication_key_col = table.columns[self.replication_key]
 
-            if self.creation_key_col:
+            if self.creation_key:
                 creation_key_col = table.columns[self.creation_key]
                 replication_statement = sa.sql.functions.coalesce(
                     replication_key_col, creation_key_col

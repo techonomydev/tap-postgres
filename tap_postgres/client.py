@@ -302,8 +302,8 @@ class PostgresStream(SQLStream):
         if self.replication_key:
             replication_key_col = table.columns[self.replication_key]
 
-            if self.creation_key:
-                creation_key_col = table.columns[self.creation_key]
+            if self.config.get("dates_as_string"):
+                creation_key_col = table.columns[self.config.get("dates_as_string")]
                 replication_statement = sa.sql.functions.coalesce(
                     replication_key_col, creation_key_col
                 )
@@ -341,6 +341,25 @@ class PostgresStream(SQLStream):
                     continue
                 yield transformed_record
 
+    def apply_catalog(self, catalog: singer.Catalog) -> None:
+        """Apply a catalog dict, updating any settings overridden within the catalog.
+
+        Developers may override this method in order to introduce advanced catalog
+        parsing, or to explicitly fail on advanced catalog customizations which
+        are not supported by the tap.
+
+        Args:
+            catalog: Catalog object passed to the tap. Defines schema, primary and
+                replication keys, as well as selection metadata.
+        """
+        self._tap_input_catalog = catalog
+
+        catalog_entry = catalog.get_stream(self.name)
+        if catalog_entry:
+            self.primary_keys = catalog_entry.key_properties
+            self.replication_key = catalog_entry.replication_key
+            if catalog_entry.replication_method:
+                self.forced_replication_method = catalog_entry.replication_method
 
 class PostgresLogBasedStream(SQLStream):
     """Stream class for Postgres log-based streams."""

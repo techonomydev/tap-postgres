@@ -321,6 +321,14 @@ class TapPostgres(SQLTap):
                 "this choice. One of `FULL_TABLE`, `INCREMENTAL`, or `LOG_BASED`."
             ),
         ),
+        th.Property(
+            "creation_key",
+            th.StringType,
+            default=None,
+            description=(
+                "Used to specify a creation key for replication."
+            ),
+        ),
     ).to_dict()
 
     def get_sqlalchemy_url(self, config: Mapping[str, Any]) -> str:

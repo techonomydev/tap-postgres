@@ -149,9 +149,9 @@ class PostgresConnector(SQLConnector):
             type_name = type(sql_type).__name__
 
         if (
-            type_name is not None
-            and isinstance(sql_type, sa.dialects.postgresql.ARRAY)
-            and type_name == "ARRAY"
+                type_name is not None
+                and isinstance(sql_type, sa.dialects.postgresql.ARRAY)
+                and type_name == "ARRAY"
         ):
             array_type = self.sdk_typing_object(sql_type.item_type)
             return th.ArrayType(array_type).type_dict
@@ -161,13 +161,13 @@ class PostgresConnector(SQLConnector):
         self,
         from_type: str | TypeEngine | type[TypeEngine],
     ) -> (
-        th.DateTimeType
-        | th.NumberType
-        | th.IntegerType
-        | th.DateType
-        | th.StringType
-        | th.BooleanType
-        | th.CustomType
+            th.DateTimeType
+            | th.NumberType
+            | th.IntegerType
+            | th.DateType
+            | th.StringType
+            | th.BooleanType
+            | th.CustomType
     ):
         """Return the JSON Schema dict that describes the sql type.
 
@@ -301,16 +301,25 @@ class PostgresStream(SQLStream):
 
         if self.replication_key:
             replication_key_col = table.columns[self.replication_key]
+
+            if self.creation_key_col:
+                creation_key_col = table.columns[self.creation_key]
+                replication_statement = sa.sql.functions.coalesce(
+                    replication_key_col, creation_key_col
+                )
+            else:
+                replication_statement = replication_key_col
+
             order_by = (
-                sa.nulls_first(replication_key_col.asc())
+                sa.nulls_first(replication_statement.asc())
                 if self.supports_nulls_first
-                else replication_key_col.asc()
+                else replication_statement.asc()
             )
             query = query.order_by(order_by)
 
             start_val = self.get_starting_replication_key_value(context)
             if start_val:
-                query = query.where(replication_key_col >= start_val)
+                query = query.where(replication_statement >= start_val)
 
         if self.ABORT_AT_RECORD_COUNT is not None:
             # Limit record count to one greater than the abort threshold. This ensures
@@ -434,20 +443,20 @@ class PostgresLogBasedStream(SQLStream):
                     yield row
             else:
                 timeout = (
-                    status_interval
-                    - (
-                        datetime.datetime.now()
-                        - logical_replication_cursor.feedback_timestamp
-                    ).total_seconds()
+                        status_interval
+                        - (
+                                datetime.datetime.now()
+                                - logical_replication_cursor.feedback_timestamp
+                        ).total_seconds()
                 )
                 try:
                     # If the timeout has passed and the cursor still has no new
                     # messages, the sync has completed.
                     if (
-                        select.select(
-                            [logical_replication_cursor], [], [], max(0, timeout)
-                        )[0]
-                        == []
+                            select.select(
+                                [logical_replication_cursor], [], [], max(0, timeout)
+                            )[0]
+                            == []
                     ):
                         break
                 except InterruptedError:
